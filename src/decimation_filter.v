@@ -3,50 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-`default_nettype none
-
-module tt_um_example (
-    input  wire [7:0] ui_in,    // Dedicated inputs
-    output wire [7:0] uo_out,   // Dedicated outputs
-    input  wire [7:0] uio_in,   // IOs: Input path
-    output wire [7:0] uio_out,  // IOs: Output path
-    output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
-    input  wire       ena,      // always 1 when the design is powered, so you can ignore it
-    input  wire       clk,      // clock
-    input  wire       rst_n     // reset_n - low to reset
-);
-
-  // All output pins must be assigned. If not used, assign to 0.
-  assign uo_out  = ui_in + uio_in;  // Example: ou_out is the sum of ui_in and uio_in
-  assign uio_out = 0;
-  assign uio_oe  = 0;
-
-  // List all unused inputs to prevent warnings
-  wire _unused = &{ena, clk, rst_n, 1'b0};
-
-endmodule
-
-module tt_um_murmann_group #(
-  // Decimation Factor
-  parameter OUTPUT_BITS = 16;
-  // Decimation Factor
-  parameter M = 4;)
-  ( input  wire [7:0] ui_in,    // Dedicated inputs
-    output wire [7:0] uo_out,   // Dedicated outputs
-    input  wire [7:0] uio_in,   // IOs: Input path
-    output wire [7:0] uio_out,  // IOs: Output path
-    output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
-    input  wire       ena,      // will go high when the design is enabled
-    input  wire       clk,      // clock
-    input  wire       rst_n     // reset_n - low to reset
-  );
+module tt_um_murmann_group ( input  wire [7:0] ui_in,    // Dedicated inputs
+                            output wire [7:0] uo_out,   // Dedicated outputs
+                            input  wire [7:0] uio_in,   // IOs: Input path
+                            output wire [7:0] uio_out,  // IOs: Output path
+                            output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
+                            input  wire       ena,      // will go high when the design is enabled
+                            input  wire       clk,      // clock
+                            input  wire       rst_n     // reset_n - low to reset
+                           );
     
     // List all unused inputs to prevent warnings
-    wire _unused = &{ena,1'b0};
+    wire _unused = &{ui_in[7:1],ena,1'b0};
 
     assign X = ui_in[0];
-    
-    wire [15:0] decimation_output;  // Output of the decimation filter (Z in decimation_filter module)
+
+    // Output of the decimation filter (Z in decimation_filter module)
+    wire [15:0] decimation_output; 
 
     // Enable the all uio pins for output
     assign uio_oe = 8'b11111111;
@@ -73,10 +46,10 @@ module decimation_filter
     input wire clk,             // Clock
     input wire reset,           // Reset
     input wire X,  				// Input data from ADC
-    output reg [WIDTH-1:0] Z 	// Decimated output data
+      output reg [OUTPUT_BITS-1:0] Z 	// Decimated output data
   );
 
-    // Integrator stage
+    // Integrator stage register
   	reg [OUTPUT_BITS-1:0] input_accumulator;
   	reg [OUTPUT_BITS-1:0] Y;
 
@@ -84,7 +57,7 @@ module decimation_filter
   	reg signed [ OUTPUT_BITS-1:0] comb_1;
     reg signed [OUTPUT_BITS-1:0] comb_2;
 
-    // Decimation counter
+    // Decimation counter register
     reg [OUTPUT_BITS-1:0] decimation_count;
 
     always @(posedge clk or posedge reset) begin

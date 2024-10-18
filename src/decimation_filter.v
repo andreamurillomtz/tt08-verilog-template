@@ -41,7 +41,7 @@ endmodule
 
 module decimation_filter 
   #(parameter OUTPUT_BITS = 16, // Bit-width of output
-    parameter M = 4             // Decimation factor
+    parameter M = 8             // Decimation factor
    )(
     input wire clk,             // Clock
     input wire reset,           // Reset
@@ -54,13 +54,14 @@ module decimation_filter
   	reg [OUTPUT_BITS-1:0] Y;
 
     // Comb stage register
-  	reg signed [ OUTPUT_BITS-1:0] comb_1;
-    reg signed [OUTPUT_BITS-1:0] comb_2;
+  	reg [OUTPUT_BITS-1:0] comb_1;
+    reg [OUTPUT_BITS-1:0] comb_2;
 
     // Decimation counter register
     reg [OUTPUT_BITS-1:0] decimation_count;
 
     always @(posedge clk or posedge reset) begin
+      $display("reset = %b", reset);
       	// Reset everything to zero
         if (reset) begin
             input_accumulator <= 0;
@@ -71,15 +72,19 @@ module decimation_filter
             Z <= 0;
         end else begin
             // Integrator stage (accumulate input samples)
+            $display("X = %b", X);
             input_accumulator <= input_accumulator + X;
             Y <= Y + input_accumulator;
+          $display("input_accumulator = %d, Y = %d, decimation_count = %d", input_accumulator, Y,decimation_count);
 
             // Decimation control
           	if (decimation_count == M - 1) begin
               	// Comb stage (only every M cycles)
+              	input_accumulator <= 0;
+            	Y <= 0;
                 comb_1 <= Y; 			 // Delay previous Y output
                 comb_2 <= comb_1;        // Delay previous comb_1 output
-
+              $display("comb_1 = %b, comb_2 = %b", comb_1, comb_2);
                 // Difference between the two delayed comb values
                 Z <= comb_1 - comb_2;
 
@@ -92,4 +97,3 @@ module decimation_filter
         end
     end
 endmodule
-
